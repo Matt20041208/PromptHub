@@ -1,0 +1,38 @@
+# Java
+target/
+*.class
+*.jar
+*.war
+*.log
+!prompt-*/*.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.project
+.classpath
+.settings/
+
+# Python
+prompt-agent/.venv/
+prompt-agent/__pycache__/
+*.pyc
+
+# Node
+prompt-web/node_modules/
+prompt-web/dist/
+
+# Config with secrets
+prompt-agent/.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Nacos
+nacos/
+
+# Temp
+/tmp/
+*.tmp

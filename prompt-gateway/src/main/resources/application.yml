@@ -1,0 +1,83 @@
+server:
+  port: 9000
+
+spring:
+  application:
+    name: prompt-gateway
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+        namespace: prompt-market
+      config:
+        server-addr: 127.0.0.1:8848
+        namespace: prompt-market
+        file-extension: yaml
+        import-check:
+          enabled: false
+        shared-configs:
+          - data-id: prompt-gateway.yaml
+            refresh: true
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: prompt-user
+          uri: lb://prompt-user
+          predicates:
+            - Path=/api/user/**
+        - id: prompt-prompt
+          uri: lb://prompt-prompt
+          predicates:
+            - Path=/api/prompt/**
+        - id: prompt-trade
+          uri: lb://prompt-trade
+          predicates:
+            - Path=/api/trade/**
+        - id: prompt-review
+          uri: lb://prompt-review
+          predicates:
+            - Path=/api/review/**
+        - id: prompt-search
+          uri: lb://prompt-search
+          predicates:
+            - Path=/api/search/**
+        - id: prompt-notify
+          uri: lb://prompt-notify
+          predicates:
+            - Path=/api/notify/**
+        - id: prompt-agent
+          uri: http://127.0.0.1:9107
+          predicates:
+            - Path=/api/agent/**
+        - id: frontend
+          uri: http://127.0.0.1:8080
+          order: 999
+          predicates:
+            - Path=/**
+
+jwt:
+  secret: prompt-market-secret-key-min-length-256-bits-for-hs256
+  expiration: 604800000
+  exclude-paths:
+    - /
+    - /index.html
+    - /src/**
+    - /node_modules/**
+    - /@vite/**
+    - /@react-refresh
+    - /@id/**
+    - /api/user/login
+    - /api/user/register
+    - /api/user/logout
+    - /api/prompt/list
+    - /api/prompt/category
+    - /api/prompt/tag
+    - /api/search/**
+    - /api/agent/**
