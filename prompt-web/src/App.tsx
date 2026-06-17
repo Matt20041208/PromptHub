@@ -8,6 +8,7 @@ import PromptDetail from './pages/PromptDetail'
 import PublishPrompt from './pages/PublishPrompt'
 import Dashboard from './pages/Dashboard'
 import Agent from './pages/Agent'
+import Chat from './pages/Chat'
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
               <Route path="/publish" element={<PublishPrompt />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/agent" element={<Agent />} />
+              <Route path="/chat" element={<Chat />} />
             </Routes>
           </main>
         </div>
@@ -56,6 +58,7 @@ function NavBar() {
           💡 Prompt Market
         </Link>
         <Link to="/agent" style={linkStyle}>AI 工具</Link>
+        <Link to="/chat" style={linkStyle}>💬 对话优化</Link>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         {user ? (

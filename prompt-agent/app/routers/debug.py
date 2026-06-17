@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 from typing import Optional, Dict
-from app.services.llm_service import llm_service
+from app.services.llm_service import agent_factory
 
 router = APIRouter()
 
@@ -19,13 +19,13 @@ async def debug_prompt(req: DebugRequest):
         for key, val in req.variables.items():
             content = content.replace("{{" + key + "}}", val)
 
-    llm = llm_service.get_default_llm()
+    llm = agent_factory.creator()
     if req.model:
         from langchain_openai import ChatOpenAI
         from app.config import OPENAI_API_KEY, OPENAI_BASE_URL
         llm = ChatOpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL, model=req.model, temperature=0.7)
 
-    response = llm.invoke(content)
+    response = agent_factory.invoke(llm, content)
     return {
         "code": 200,
         "message": "success",

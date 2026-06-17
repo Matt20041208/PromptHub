@@ -23,6 +23,9 @@ spring:
           - data-id: prompt-gateway.yaml
             refresh: true
     gateway:
+      httpclient:
+        response-timeout: 300s
+        connect-timeout: 10000
       discovery:
         locator:
           enabled: true
@@ -56,6 +59,9 @@ spring:
           uri: http://127.0.0.1:9107
           predicates:
             - Path=/api/agent/**
+          metadata:
+            response-timeout: 300000
+            connect-timeout: 10000
         - id: frontend
           uri: http://127.0.0.1:8080
           order: 999
