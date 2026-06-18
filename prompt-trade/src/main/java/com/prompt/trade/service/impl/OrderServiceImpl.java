@@ -23,6 +23,8 @@ import com.prompt.trade.mapper.PurchaseRecordMapper;
 import com.prompt.trade.mapper.TransactionLogMapper;
 import com.prompt.trade.mapper.UserBalanceMapper;
 import com.prompt.trade.service.OrderService;
+import com.prompt.trade.feign.PromptClient;
+import com.prompt.trade.feign.UserClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -49,6 +51,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, OrderInfo> implem
     private final PurchaseRecordMapper purchaseRecordMapper;
     private final StringRedisTemplate stringRedisTemplate;
     private final RabbitTemplate rabbitTemplate;
+    private final PromptClient promptClient;
+    private final UserClient userClient;
 
     @Override
     @Transactional
@@ -58,16 +62,11 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, OrderInfo> implem
         BigDecimal price = BigDecimal.ZERO;
 
         try {
-            RestTemplate restTemplate = new RestTemplate();
-            String promptUrl = "http://127.0.0.1:9102/api/prompt/" + promptId;
-            var response = restTemplate.getForEntity(promptUrl, String.class);
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                JSONObject json = JSONUtil.parseObj(response.getBody());
-                if (json.getInt("code") == 200 && json.get("data") != null) {
-                    JSONObject data = json.getJSONObject("data");
-                    sellerId = data.getLong("userId");
-                    price = data.getBigDecimal("price");
-                }
+            var result = promptClient.getDetail(promptId);
+            if (result != null && result.getCode() == 200 && result.getData() != null) {
+                var data = result.getData();
+                if (data.get("userId") instanceof Number) sellerId = ((Number) data.get("userId")).longValue();
+                if (data.get("price") instanceof Number) price = BigDecimal.valueOf(((Number) data.get("price")).doubleValue());
             }
         } catch (Exception ignored) {}
 
@@ -192,13 +191,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, OrderInfo> implem
 
     private boolean checkVip(Long userId) {
         try {
-            RestTemplate rt = new RestTemplate();
-            String resp = rt.getForObject("http://127.0.0.1:9101/api/user/" + userId, String.class);
-            if (resp != null) {
-                JSONObject json = JSONUtil.parseObj(resp);
-                if (json.getInt("code") == 200 && json.getJSONObject("data") != null)
-                    return Boolean.TRUE.equals(json.getJSONObject("data").getBool("vip"));
-            }
+            var result = userClient.getUser(userId);
+            if (result != null && result.getCode() == 200 && result.getData() != null)
+                return Boolean.TRUE.equals(result.getData().get("vip"));
         } catch (Exception ignored) {}
         return false;
     }

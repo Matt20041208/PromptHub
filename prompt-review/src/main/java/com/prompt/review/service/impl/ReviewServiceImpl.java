@@ -14,6 +14,7 @@ import com.prompt.review.dto.ReviewVO;
 import com.prompt.review.entity.Review;
 import com.prompt.review.mapper.ReviewMapper;
 import com.prompt.review.service.ReviewService;
+import com.prompt.review.feign.PromptClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,7 @@ public class ReviewServiceImpl extends ServiceImpl<ReviewMapper, Review> impleme
 
     private final ReviewMapper reviewMapper;
     private final RabbitTemplate rabbitTemplate;
+    private final PromptClient promptClient;
 
     @Override
     @Transactional
@@ -60,11 +62,11 @@ public class ReviewServiceImpl extends ServiceImpl<ReviewMapper, Review> impleme
         // Get prompt author for notification
         Long sellerId = null;
         try {
-            RestTemplate rt = new RestTemplate();
-            String resp = rt.getForObject("http://127.0.0.1:9102/api/prompt/" + dto.getPromptId(), String.class);
-            if (resp != null) {
-                JSONObject json = JSONUtil.parseObj(resp).getJSONObject("data");
-                if (json != null) sellerId = json.getLong("userId");
+            var result = promptClient.getDetail(dto.getPromptId());
+            if (result != null && result.getCode() == 200 && result.getData() != null) {
+                Object sid = result.getData().get("userId");
+                if (sid instanceof Number) sellerId = ((Number) sid).longValue();
+                if (sid instanceof String) sellerId = Long.parseLong((String) sid);
             }
         } catch (Exception ignored) {}
 

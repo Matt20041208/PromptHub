@@ -26,6 +26,8 @@ import com.prompt.prompt.mapper.PromptTagMapper;
 import com.prompt.prompt.mapper.PromptTagRelMapper;
 import com.prompt.prompt.mapper.PromptVersionMapper;
 import com.prompt.prompt.service.PromptService;
+import com.prompt.prompt.feign.TradeClient;
+import com.prompt.prompt.feign.UserClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -60,6 +62,8 @@ public class PromptServiceImpl extends ServiceImpl<PromptMapper, Prompt> impleme
     private final PromptCategoryMapper promptCategoryMapper;
     private final PromptVersionMapper promptVersionMapper;
     private final StringRedisTemplate stringRedisTemplate;
+    private final TradeClient tradeClient;
+    private final UserClient userClient;
 
     @Override
     @Cacheable(value = "prompt_list", key = "'page_' + #dto.page + '_' + #dto.size + '_' + #dto.keyword + '_' + #dto.categoryId + '_' + #dto.sortBy", unless = "#result == null || #result.total == 0")
@@ -186,36 +190,19 @@ public class PromptServiceImpl extends ServiceImpl<PromptMapper, Prompt> impleme
 
     private boolean checkPurchased(Long userId, Long promptId) {
         try {
-            RestTemplate restTemplate = new RestTemplate();
-            String url = "http://127.0.0.1:9103/api/trade/purchased";
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("X-User-Id", String.valueOf(userId));
-            HttpEntity<Void> entity = new HttpEntity<>(headers);
-            var response = restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    entity,
-                    new ParameterizedTypeReference<com.prompt.common.result.Result<com.prompt.common.result.PageResult<Long>>>() {}
-            );
-            if (response.getBody() != null && response.getBody().getCode() == 200) {
-                var data = response.getBody().getData();
-                return data.getRecords().contains(promptId);
+            var result = tradeClient.listPurchased(userId);
+            if (result != null && result.getCode() == 200 && result.getData() != null) {
+                return result.getData().getRecords().contains(promptId);
             }
-        } catch (Exception e) {
-            // ignore
-        }
+        } catch (Exception ignored) {}
         return false;
     }
 
     private boolean checkVip(Long userId) {
         try {
-            RestTemplate rt = new RestTemplate();
-            String resp = rt.getForObject("http://127.0.0.1:9101/api/user/" + userId, String.class);
-            if (resp != null) {
-                var json = cn.hutool.json.JSONUtil.parseObj(resp);
-                if (json.getInt("code") == 200 && json.getJSONObject("data") != null) {
-                    return Boolean.TRUE.equals(json.getJSONObject("data").getBool("vip"));
-                }
+            var result = userClient.getUser(userId);
+            if (result != null && result.getCode() == 200 && result.getData() != null) {
+                return Boolean.TRUE.equals(result.getData().get("vip"));
             }
         } catch (Exception ignored) {}
         return false;
